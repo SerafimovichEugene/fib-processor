@@ -1,12 +1,26 @@
-import fs from 'fs';
+// import fs from 'fs';
 import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import { Worker } from 'worker_threads';
 import { performance } from 'perf_hooks';
-
+import AWS from 'aws-sdk';
 import './fib';
 
 dotenv.config();
+
+AWS.config.update({
+    region: 'eu-central-1',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+});
+
+const docClient = new AWS.DynamoDB.DocumentClient();
+
+const table = "fib_status";
+
+const params = {
+    TableName:table,
+};
 
 function runFibWorker(n: number): Promise<{id: string, result: string}> {
     return new Promise((resolve, reject) => {
@@ -44,11 +58,19 @@ app.get('/fib', (req: Request, res: Response, next: NextFunction) => {
                     
                     console.log(id, ' -- finished', `passed: ${t1 - t0} ms`);
                     
-                    fs.appendFile('db.txt', `${id}: ${result}\n`, function (err) {
-                            if (err) return console.log(err);
-                        });
+                    // fs.appendFile('db.txt', `${id}: ${result}\n`, function (err) {
+                    //         if (err) return console.log(err);
+                    //     });
+
+                    docClient.put({...params, Item: { id, result }}, function(err, data) {
+                        if (err) {
+                            console.error("Unable to add item. Error JSON:", JSON.stringify(err, null, 2));
+                        } else {
+                            console.log("Added item:", JSON.stringify(data, null, 2));
+                        }
+                    });
+
                     }
-                    
                 ).catch(err=> {
                     console.log(err);
                 })
