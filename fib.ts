@@ -1,6 +1,5 @@
 import { parentPort, workerData, isMainThread } from 'worker_threads';
-import { sumInColumn } from "./calc";
-import { nanoid } from 'nanoid';
+import { sumInColumn } from './calc';
 
 const fibonacci = (n: number): string => {
     if (n <= 1) {
@@ -10,11 +9,12 @@ const fibonacci = (n: number): string => {
 };
 
 if (!isMainThread) {
-    const id = nanoid();
+    // const id = nanoid();
+    const { id, n } = workerData;
     console.log(id, ' -- started');
     // const t0 = performance.now();
 
-    const res = fibonacci(workerData);
+    const res = fibonacci(n);
 
     if (parentPort) {
         // const t1 = performance.now();
