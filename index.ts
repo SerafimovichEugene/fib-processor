@@ -1,8 +1,7 @@
-// import fs from 'fs';
+
 import path from 'path';
 import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
-// import { nanoid } from 'nanoid';
 import { Worker } from 'worker_threads';
 import { performance } from 'perf_hooks';
 import AWS from 'aws-sdk';
