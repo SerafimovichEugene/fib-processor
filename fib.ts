@@ -9,7 +9,7 @@ const fibonacci = (n: number): string => {
 };
 
 if (!isMainThread) {
-    // const id = nanoid();
+    
     const { id, n } = workerData;
     console.log(id, ' -- started');
     // const t0 = performance.now();

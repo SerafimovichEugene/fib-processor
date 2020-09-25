@@ -19,9 +19,7 @@ const docClient = new AWS.DynamoDB.DocumentClient();
 
 const table = "fib_status";
 
-const params = {
-    TableName:table,
-};
+const params = { TableName: table };
 
 function runFibWorker(n: number, id: string): Promise<{id: string, result: string}> {
     return new Promise((resolve, reject) => {
@@ -42,13 +40,21 @@ app.get('/health', (_req: Request, res: Response): void => {
     },
 );
 
-app.get('/fib', (req: Request, res: Response, next: NextFunction) => {
+app.get('/fib', (req: Request, res: Response) => {
  
         const { n, jobId } = req.query;
-
         const number = Number(n);
+        const isNumber = !isNaN(number);
+
+        if (!isNumber) {
+            res.status(401).send('n is not a number');
+        }
         
-        if (!isNaN(number)) {
+        if (!jobId) {
+            res.status(401).send('job id is required');
+        }
+        
+        if (isNumber) {
 
             const t0 = performance.now();
 
@@ -56,30 +62,27 @@ app.get('/fib', (req: Request, res: Response, next: NextFunction) => {
                 .then(({id, result}) => {
 
                     const t1 = performance.now();
-                    
-                    console.log(id, ' -- finished: ', result, ` passed: ${t1 - t0} ms`);
-            
-                    
+
+                    console.log(id, ' -- result: ', result, ` passed: ${t1 - t0} ms`);
+                            
                     // fs.appendFile('db.txt', `${id}: ${result}\n`, function (err) {
                     //         if (err) return console.log(err);
                     //     });
 
-                    docClient.put({...params, Item: { id, result }}, function(err, data) {
-                        if (err) {
-                            console.error("Unable to add item. Error JSON:", JSON.stringify(err, null, 2));
-                        } else {
-                            console.log("Added item:", JSON.stringify(data, null, 2));
-                        }
-                    });
-
+                    docClient.put({...params, Item: { id, result, status: 'finished' }}).promise()
+                        .then(() => {
+                            console.log("result", JSON.stringify({ jobId, result }, null, 2));
+                        })
+                        .catch(err => {
+                            console.error("got result, but can't save", JSON.stringify({ jobId, result, err }, null, 2));
+                        });
                     }
-                ).catch(err=> {
-                    console.log(err);
+                ).catch(err => {
+                    console.log('worker execution error', err);
                 })
                 
             res.send('in progress');
         }
-        next();
     },
 );
 
